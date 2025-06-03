@@ -2,25 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Xot_swap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Xot_swap - Power Play</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --primary-color: #28a745; /* Greenish */
-            --secondary-color: #17a2b8; /* Bluish */
-            --background-color: #f4f4f9; /* Light grey */
-            --card-background: #ffffff;
-            --text-color: #333333;
-            --nav-background: #ffffff;
-            --nav-text-color: #555555;
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #707579;
+            --tg-theme-link-color: #2481cc;
+            --tg-theme-button-color: #2481cc;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f0f0f0;
+
+            --primary-color: var(--tg-theme-button-color, #007bff);
+            --secondary-color: #17a2b8;
+            --accent-color: #ffc107; /* Yellow/Gold for highlights */
+            --background-color: var(--tg-theme-bg-color, #f4f4f9);
+            --card-background: var(--tg-theme-secondary-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #333333);
+            --nav-background: var(--tg-theme-secondary-bg-color, #ffffff);
+            --nav-text-color: var(--tg-theme-hint-color, #555555);
             --nav-active-color: var(--primary-color);
             --button-color: var(--primary-color);
-            --button-text-color: #ffffff;
+            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
             --energy-bar-background: #e9ecef;
-            --energy-bar-fill: #ffc107; /* Yellow for energy */
+            --energy-bar-fill: var(--accent-color);
             --points-color: var(--primary-color);
-            --header-height: 50px;
-            --nav-height: 60px;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+
+            --header-height: 55px;
+            --nav-height: 65px;
+            --button-padding: 12px 20px;
+            --button-font-size: 1em;
+            --card-border-radius: 12px;
+            --button-border-radius: 8px;
         }
 
         body {
@@ -31,43 +48,53 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden; /* Prevent body scroll, pages will scroll if needed */
+            height: calc(var(--vh, 1vh) * 100); /* Fallback for vh units on mobile */
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
 
         #app-header {
             background-color: var(--primary-color);
-            color: white;
+            color: var(--button-text-color);
             text-align: center;
-            padding: 15px 0;
-            font-size: 1.2em;
+            padding: 0 15px;
+            font-size: 1.3em;
             font-weight: bold;
             height: var(--header-height);
-            line-height: calc(var(--header-height) - 30px); /* vertical align text */
+            display: flex;
+            align-items: center;
+            justify-content: center;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .content-area {
             flex-grow: 1;
-            padding-top: var(--header-height); /* Space for fixed header */
-            padding-bottom: var(--nav-height); /* Space for fixed nav */
-            overflow-y: auto; /* Allow scrolling within content area */
+            padding-top: var(--header-height);
+            padding-bottom: var(--nav-height);
+            overflow-y: auto;
         }
 
         .page {
             display: none;
             padding: 20px;
-            min-height: calc(100vh - var(--header-height) - var(--nav-height) - 40px); /* Full viewport minus headers/padding */
+            min-height: calc(100% - 40px); /* Full available height minus padding */
         }
 
         .page.active {
             display: block;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        /* Bottom Navigation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         #bottom-nav {
             position: fixed;
             bottom: 0;
@@ -79,7 +106,7 @@
             justify-content: space-around;
             align-items: center;
             border-top: 1px solid #ddd;
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 -3px 8px rgba(0,0,0,0.08);
             z-index: 1000;
         }
 
@@ -87,9 +114,9 @@
             background: none;
             border: none;
             color: var(--nav-text-color);
-            font-size: 10px; /* Smaller text for icons + text */
+            font-size: 11px;
             cursor: pointer;
-            padding: 5px;
+            padding: 8px 5px;
             text-align: center;
             flex: 1;
             display: flex;
@@ -97,238 +124,367 @@
             align-items: center;
             justify-content: center;
             height: 100%;
+            transition: color 0.2s;
         }
         
         .nav-btn svg {
-            width: 24px;
-            height: 24px;
-            margin-bottom: 4px;
+            width: 26px;
+            height: 26px;
+            margin-bottom: 5px;
+            fill: var(--nav-text-color);
+            transition: fill 0.2s;
         }
 
         .nav-btn.active {
             color: var(--nav-active-color);
-            font-weight: bold;
+            font-weight: 600;
         }
         
-        .nav-btn.active svg path {
+        .nav-btn.active svg {
             fill: var(--nav-active-color);
         }
 
-        /* Tap Page */
+        /* Tap Page Specifics */
         #page-tap {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: space-around; /* Better distribution */
             text-align: center;
+            padding: 10px; /* Reduce padding for more space */
         }
 
-        #points-display {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: var(--points-color);
-            margin-bottom: 20px;
+        .tap-header-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        .tap-header-info div {
+            background-color: var(--card-background);
+            padding: 8px 12px;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            font-size: 0.9em;
         }
 
-        #tap-button {
-            width: 200px; /* Adjust size as needed */
-            height: 200px; /* Adjust size as needed */
-            cursor: pointer;
-            border-radius: 50%; /* Make it round if you want a circular tap area */
-            /* background-color: #ddd; Remove if image fills it */
+        #points-display-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            user-select: none; /* Prevent text selection on rapid taps */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            transition: transform 0.05s ease-out; /* Tap feedback */
+            margin-bottom: 15px;
         }
-        #tap-button:active {
-            transform: scale(0.95);
+        #points-display-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 10px;
+            /* Add your coin icon here, e.g., background-image or SVG */
+        }
+        #points-display {
+            font-size: 2.8em;
+            font-weight: bold;
+            color: var(--points-color);
+            line-height: 1;
         }
 
-        #tap-image { /* This is the cat/hamster image */
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* Ensures image fits well */
+        #tap-button-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #tap-button {
+            width: 250px; /* Larger tap button */
+            height: 250px;
+            cursor: pointer;
+            border-radius: 50%;
+            background-color: var(--card-background); /* Fallback bg */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15), 0 0 0 5px rgba(255,255,255,0.3); /* Outer glow */
+            transition: transform 0.05s ease-out, box-shadow 0.1s ease-out;
+            overflow: hidden; /* Ensure image stays within bounds */
+        }
+        #tap-button:active {
+            transform: scale(0.93);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 3px rgba(255,255,255,0.2);
+        }
+        #tap-image {
+            width: 90%; /* Adjust if image has padding */
+            height: 90%;
+            object-fit: contain;
+            border-radius: 50%; /* If image itself isn't round */
         }
 
         #energy-container {
-            width: 80%;
-            max-width: 300px;
+            width: 90%;
+            max-width: 350px;
             text-align: center;
         }
-
-        #energy-bar-bg {
-            background-color: var(--energy-bar-background);
-            border-radius: 10px;
-            height: 20px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        #energy-bar-fill {
-            background-color: var(--energy-bar-fill);
-            width: 100%; /* Controlled by JS */
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.2s ease-in-out;
-        }
-        
-        #energy-text {
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
-        /* Profile Page */
-        #page-profile .profile-item {
-            background-color: var(--card-background);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        #page-profile .profile-item strong {
-            color: var(--primary-color);
-        }
-
-        /* Task Page */
-        .task-list {
-            list-style: none;
-            padding: 0;
-        }
-        .task-item {
-            background-color: var(--card-background);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        #energy-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .task-item .task-info {
-            flex-grow: 1;
-        }
-        .task-item .task-name {
-            font-weight: bold;
-        }
-        .task-item .task-reward {
-            font-size: 0.9em;
-            color: #555;
-        }
-        .task-item .task-action button {
-            background-color: var(--button-color);
-            color: var(--button-text-color);
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-        .task-item .task-action button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* Withdraw Page */
-        #page-withdraw .form-group {
-            margin-bottom: 15px;
-        }
-        #page-withdraw label {
-            display: block;
             margin-bottom: 5px;
-            font-weight: bold;
+            font-size: 0.95em;
         }
-        #page-withdraw input[type="number"],
-        #page-withdraw select {
-            width: calc(100% - 22px); /* Full width minus padding/border */
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
-        }
-        #page-withdraw button {
-            background-color: var(--button-color);
-            color: var(--button-text-color);
+        #energy-text { color: var(--text-color); }
+        #boost-full-energy {
+            background-color: var(--accent-color);
+            color: #333;
             border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: var(--button-border-radius);
+            font-size: 0.8em;
+            font-weight: bold;
             cursor: pointer;
-            font-size: 1em;
+        }
+        #energy-bar-bg {
+            background-color: var(--energy-bar-background);
+            border-radius: 10px;
+            height: 22px;
+            overflow: hidden;
+            margin-top: 5px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        #energy-bar-fill {
+            background: linear-gradient(90deg, var(--accent-color), #ffd700);
             width: 100%;
-        }
-        #page-withdraw button:disabled {
-            background-color: #ccc;
-        }
-        #withdraw-history {
-            margin-top: 20px;
-        }
-        #withdraw-history h3 {
-            margin-bottom: 10px;
-        }
-        .history-item {
-            background-color: var(--card-background);
-            padding: 10px;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            font-size: 0.9em;
-        }
-
-        /* General utility */
-        .card {
-            background-color: var(--card-background);
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px_4px rgba(0,0,0,0.1);
-        }
-        .text-center {
-            text-align: center;
+            height: 100%;
+            border-radius: 10px 0 0 10px; /* Keep left sharp if 100% */
+            transition: width 0.2s ease-in-out;
         }
 
         /* Floating tap score animation */
         .tap-score-animation {
             position: absolute;
-            font-size: 1.5em; /* Adjust as needed */
-            color: var(--primary-color); /* Or gold, etc. */
+            font-size: 2em;
+            color: var(--accent-color);
             font-weight: bold;
             user-select: none;
             pointer-events: none;
             animation: floatUpAndFade 1s forwards;
-            z-index: 100; /* Above the tap button */
+            text-shadow: 0 0 5px rgba(0,0,0,0.3);
+            z-index: 101;
+        }
+        @keyframes floatUpAndFade {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-70px) scale(1.2); }
         }
 
-        @keyframes floatUpAndFade {
-            0% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-50px); /* Adjust vertical distance */
-            }
+        /* General UI Elements */
+        .card {
+            background-color: var(--card-background);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .card h2 { margin-top: 0; color: var(--primary-color); }
+        .card h3 { margin-top: 0; color: var(--secondary-color); }
+
+        button.primary-btn {
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+            padding: var(--button-padding);
+            border-radius: var(--button-border-radius);
+            cursor: pointer;
+            font-size: var(--button-font-size);
+            font-weight: 500;
+            width: 100%;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button.primary-btn:hover { background-color: color-mix(in srgb, var(--button-color) 90%, black); }
+        button.primary-btn:active { transform: scale(0.98); }
+        button.primary-btn:disabled {
+            background-color: #ccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        /* Profile Page */
+        #page-profile .profile-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        #page-profile .profile-item:last-child { border-bottom: none; }
+        #page-profile strong { color: var(--primary-color); }
+        #profile-referral-link {
+            display: inline-block;
+            padding: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            word-break: break-all;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        /* Task Page */
+        .task-list { list-style: none; padding: 0; }
+        .task-item {
+            background-color: var(--card-background);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: var(--card-border-radius);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-info { flex-grow: 1; margin-right: 10px; }
+        .task-name { font-weight: bold; font-size: 1.05em; }
+        .task-reward { font-size: 0.9em; color: var(--tg-theme-hint-color, #555); margin-top: 4px; }
+        .task-action button {
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--button-border-radius);
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .task-action button:disabled { background-color: #ccc; color: #666; }
+        .task-action button.completed { background-color: var(--success-color); }
+
+
+        /* Upgrades Page */
+        #page-upgrades .upgrade-category h3 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .upgrade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .upgrade-item:last-child { border-bottom: none; }
+        .upgrade-info .name { font-weight: 500; font-size: 1.05em; }
+        .upgrade-info .level, .upgrade-info .effect { font-size: 0.85em; color: var(--tg-theme-hint-color, #777); }
+        .upgrade-action .cost {
+            display: block;
+            font-size: 0.9em;
+            color: var(--points-color);
+            margin-bottom: 5px;
+            text-align: right;
+        }
+        .upgrade-action button {
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        /* Withdraw Page */
+        #page-withdraw .form-group { margin-bottom: 15px; }
+        #page-withdraw label { display: block; margin-bottom: 5px; font-weight: bold; }
+        #page-withdraw input, #page-withdraw select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--button-border-radius);
+            font-size: 1em;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        #withdraw-message { margin-top:15px; text-align:center; font-weight: 500; }
+        .history-item {
+            background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: var(--button-border-radius);
+            font-size: 0.9em;
+            border: 1px solid #eee;
+        }
+
+        /* Daily Reward Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background-color: var(--card-background);
+            margin: auto;
+            padding: 25px;
+            border-radius: var(--card-border-radius);
+            width: 85%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            animation: modalOpen 0.3s ease-out;
+        }
+        @keyframes modalOpen {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-content h2 { color: var(--primary-color); margin-top: 0; }
+        .modal-content p { margin-bottom: 20px; font-size: 1.1em; }
+
+        /* Utility */
+        .text-center { text-align: center; }
+        .mt-1 { margin-top: 10px; }
+        .mt-2 { margin-top: 20px; }
+        .mb-1 { margin-bottom: 10px; }
+        .mb-2 { margin-bottom: 20px; }
+        .hidden { display: none !important; }
+
+        /* Toast Notification */
+        #toast-notification {
+            position: fixed;
+            bottom: calc(var(--nav-height) + 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.3s ease, bottom 0.3s ease;
+            pointer-events: none;
+        }
+        #toast-notification.show {
+            opacity: 1;
+            bottom: calc(var(--nav-height) + 30px);
         }
 
     </style>
 </head>
 <body>
-    <div id="app-header">Xot_swap</div>
+    <div id="app-header">Xot_swap Power Play</div>
 
     <div class="content-area">
         <!-- Profile Page -->
         <div id="page-profile" class="page">
-            <h2>Profile</h2>
             <div class="card">
+                <h2>My Profile</h2>
                 <div class="profile-item"><strong>Name:</strong> <span id="profile-name"></span></div>
+                <div class="profile-item"><strong>User ID:</strong> <span id="profile-userId"></span></div>
                 <div class="profile-item"><strong>Current Points:</strong> <span id="profile-points"></span></div>
+                <div class="profile-item"><strong>Profit Per Hour:</strong> <span id="profile-pph"></span></div>
                 <div class="profile-item"><strong>Joined:</strong> <span id="profile-join-date"></span></div>
-                <div class="profile-item"><strong>Referral Link:</strong> <br><span id="profile-referral-link" style="word-break: break-all;"></span></div>
+                <div class="profile-item">
+                    <strong>Referral Link:</strong><br>
+                    <span id="profile-referral-link" onclick="app.copyReferralLink()">Tap to copy</span>
+                </div>
             </div>
-            <div class="text-center" style="margin-top: 20px;">
+            <div class="card text-center">
+                <h3>Game Links</h3>
                 <p>Bot: <a href="https://t.me/xotswap_bot" target="_blank">t.me/xotswap_bot</a></p>
                 <p>Direct WebApp: <a href="http://t.me/xotswap_bot/Xot" target="_blank">t.me/xotswap_bot/Xot</a></p>
             </div>
@@ -336,37 +492,52 @@
 
         <!-- Tap Page -->
         <div id="page-tap" class="page active">
-            <div id="points-display">0</div>
-            <div id="tap-button-container" style="position: relative;"> <!-- Container for tap button and animations -->
+            <div class="tap-header-info">
+                <div id="profit-per-hour-display">PPH: 0</div>
+                <div id="level-display">Level: 1</div>
+            </div>
+
+            <div id="points-display-container">
+                <!-- <img id="points-display-icon" src="coin_icon_url_here" alt="coin"> -->
+                <div id="points-display">0</div>
+            </div>
+
+            <div id="tap-button-container">
                 <div id="tap-button">
-                    <!-- 
-                        Replace this SVG with your desired image.
-                        For a raster image (PNG, JPG, GIF):
-                        <img id="tap-image" src="YOUR_IMAGE_URL_HERE" alt="Tap Me">
-                        Make sure the image is HD and fits well.
-                    -->
-                    <svg id="tap-image" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Simple Cat SVG - Replace with Hamster or other image -->
-                        <path d="M50 10 C 20 10, 20 40, 20 50 C 20 80, 30 90, 50 90 C 70 90, 80 80, 80 50 C 80 40, 80 10, 50 10 Z M 40 40 Q 45 35, 50 40 Q 55 35, 60 40 Q 55 45, 50 50 Q 45 45, 40 40 Z M 30 60 Q 50 70, 70 60 Q 50 80, 30 60 Z" fill="#FFA500"/>
-                        <circle cx="35" cy="30" r="5" fill="black"/>
-                        <circle cx="65" cy="30" r="5" fill="black"/>
-                        <path d="M45 55 Q50 60 55 55" stroke="black" stroke-width="2" fill="none"/>
-                        <path d="M20 50 A 10 10 0 0 0 10 40 L 10 30 A 5 5 0 0 1 20 30 Z" fill="#FFA500"/>
-                        <path d="M80 50 A 10 10 0 0 1 90 40 L 90 30 A 5 5 0 0 0 80 30 Z" fill="#FFA500"/>
-                    </svg>
+                    <img id="tap-image" src="https://i.ibb.co/9TRgV9k/hamster-placeholder.png" alt="Tap Me">
+                    <!-- Replace ^ with your actual image URL. Placeholder: https://i.ibb.co/9TRgV9k/hamster-placeholder.png -->
                 </div>
             </div>
+
             <div id="energy-container">
-                <span>Energy: <span id="energy-text">100/100</span></span>
+                <div id="energy-info">
+                    <span>⚡️ Energy: <span id="energy-text">500/500</span></span>
+                    <button id="boost-full-energy" onclick="app.activateFullEnergyBoost()">Full Energy</button>
+                </div>
                 <div id="energy-bar-bg">
                     <div id="energy-bar-fill"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Upgrades Page -->
+        <div id="page-upgrades" class="page">
+            <div class="card">
+                <h2>Upgrades</h2>
+                <p>Boost your earning potential!</p>
+            </div>
+            <div id="upgrades-list">
+                <!-- Upgrade items will be rendered here by JS -->
+            </div>
+        </div>
+
+
         <!-- Task Page -->
         <div id="page-task" class="page">
-            <h2>Tasks</h2>
+            <div class="card">
+                <h2>Tasks</h2>
+                <p>Complete tasks for extra rewards!</p>
+            </div>
             <ul id="task-list" class="task-list">
                 <!-- Tasks will be rendered here by JS -->
             </ul>
@@ -374,8 +545,8 @@
 
         <!-- Withdraw Page -->
         <div id="page-withdraw" class="page">
-            <h2>Withdraw Points</h2>
             <div class="card">
+                <h2>Withdraw Points</h2>
                 <div class="form-group">
                     <label for="withdraw-amount">Amount to Withdraw:</label>
                     <input type="number" id="withdraw-amount" placeholder="Enter points">
@@ -383,121 +554,6 @@
                 <div class="form-group">
                     <label for="withdraw-method">Withdrawal Method:</label>
                     <select id="withdraw-method">
-                        <option value="paypal">PayPal</option>
-                        <option value="bank">Wire Transfer</option>
-                        <option value="crypto">Crypto (USDT)</option>
-                    </select>
-                </div>
-                <button id="withdraw-btn">Withdraw</button>
-                <p id="withdraw-message" style="margin-top:10px; text-align:center;"></p>
-            </div>
-            <div id="withdraw-history" class="card">
-                <h3>Withdrawal History (Mock)</h3>
-                <ul id="history-list" style="list-style:none; padding:0;">
-                    <!-- History items will be added here -->
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <nav id="bottom-nav">
-        <button class="nav-btn" data-page="page-profile">
-            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,5A3,3 0 0,1 15,8A3,3 0 0,1 12,11A3,3 0 0,1 9,8A3,3 0 0,1 12,5M12,19.2C9.5,19.2 7.29,17.92 6,15.98C6.03,13.98 10,12.9 12,12.9C14,12.9 17.97,13.98 18,15.98C16.71,17.92 14.5,19.2 12,19.2Z" /></svg>
-            Profile
-        </button>
-        <button class="nav-btn active" data-page="page-tap">
-             <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,6H13V13H16L12,17L8,13H11V6M12,20C7.59,20 4,16.41 4,12H6A6,6 0 0,1 12,18A6,6 0 0,1 18,12H20C20,16.41 16.41,20 12,20Z" /></svg>
-            Tap
-        </button>
-        <button class="nav-btn" data-page="page-task">
-            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,13L14.5,15.5L12,18L9.5,15.5L12,13M8,5V7H11V5H8Z" /></svg>
-            Tasks
-        </button>
-        <button class="nav-btn" data-page="page-withdraw">
-            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" /></svg>
-            Withdraw
-        </button>
-    </nav>
-
-    <script>
-        // Attempt to use Telegram WebApp SDK for user data
-        const tg = window.Telegram?.WebApp;
-        
-        const app = {
-            userData: {
-                userName: "Guest",
-                userId: null, // Store Telegram user ID if available
-                joiningDate: new Date().toISOString(),
-                points: 0,
-                energy: 100,
-                maxEnergy: 500, // Initial max energy
-                energyPerTap: 1,   // Energy consumed per tap
-                pointsPerTap: 1,   // Points gained per tap
-                energyRegenRate: 1, // Energy points per second
-                lastEnergyUpdate: Date.now(),
-                tasks: [
-                    { id: "yt1", name: "Watch Tech Review 📺", reward: 1000, completed: false, url: "https://www.youtube.com/embed/M7lc1qf-
-                    ms" }, // Example: MKBHD video
-                    { id: "yt2", name: "Learn Coding Basics 💻", reward: 1000, completed: false, url: "https://www.youtube.com/embed/zOjov-2OZ0E" }, // Example: FreeCodeCamp video
-                    { id: "yt3", name: "SpaceX Starship Update 🚀", reward: 1000, completed: false, url: "https://www.youtube.com/embed/uRk339ablko" }, // Example: SpaceX video
-                    { id: "yt4", name: "Funny Cat Compilation 😹", reward: 1000, completed: false, url: "https://www.youtube.com/embed/short-funny-cats" }, // Example: Placeholder for generic cat video
-                    { id: "yt5", name: "Travel Vlog: Japan 🌸", reward: 1000, completed: false, url: "https://www.youtube.com/embed/Iaoy3QEJ9n8" } // Example: Travel vlog
-                ],
-                referralLink: "t.me/xotswap_bot?start=REF_PLACEHOLDER",
-                withdrawals: []
-            },
-            config: {
-                localStorageKey: 'xotSwapData_v1' // Versioning for easier future migrations
-            },
-
-            init: function() {
-                if (tg) {
-                    tg.ready(); // Inform Telegram an app is ready
-                    tg.expand(); // Expand the webapp to full height
-                    // Use actual Telegram user data if available
-                    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                        const user = tg.initDataUnsafe.user;
-                        this.userData.userName = user.first_name + (user.last_name ? ' ' + user.last_name : '') || user.username || "Telegram User";
-                        this.userData.userId = user.id;
-                        this.userData.referralLink = `https://t.me/xotswap_bot?start=${user.id}`;
-                    }
-                }
-
-                this.loadData();
-                this.initNavigation();
-                this.updateAllDisplays();
-                this.renderTasks();
-                this.renderProfile();
-                this.renderWithdrawHistory();
-
-                document.getElementById('tap-button').addEventListener('click', (event) => this.handleTap(event));
-                document.getElementById('withdraw-btn').addEventListener('click', () => this.handleWithdraw());
-                
-                setInterval(() => this.regenerateEnergy(), 1000); // Regenerate energy every second
-
-                // Set initial active page (Tap page)
-                this.showPage('page-tap'); 
-                document.querySelector(`.nav-btn[data-page="page-tap"]`).classList.add('active');
-            },
-
-            loadData: function() {
-                const savedData = localStorage.getItem(this.config.localStorageKey);
-                if (savedData) {
-                    const parsedData = JSON.parse(savedData);
-                    // Carefully merge, prioritize existing tasks structure if IDs match
-                    // to preserve task definitions, but update completion status
-                    const currentTaskIds = this.userData.tasks.map(t => t.id);
-                    const savedTasks = parsedData.tasks || [];
-                    
-                    this.userData = {
-                        ...this.userData, // Start with defaults (e.g. new tasks are added)
-                        ...parsedData,    // Override with saved data
-                        tasks: this.userData.tasks.map(defaultTask => { // Merge tasks
-                            const savedTask = savedTasks.find(st => st.id === defaultTask.id);
-                            return savedTask ? { ...defaultTask, completed: savedTask.completed } : defaultTask;
-                        })
-                    };
-                    // Ensure essential values are numbers
-                    this.userData.points = Number(this.userData.points) || 0;
-                    this.userData.energy = Number(this.userData.energy) || 0;
-                    this.user
+                        <option value="crypto">Crypto (USDT TON)</option>
+                        <option value="paypal" disabled>PayPal (Coming Soon)</option>
+                        <option value="bank" disab
